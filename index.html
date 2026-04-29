@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Technology · Power · Futures</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Bricolage+Grotesque:opsz,wght@12..96,300;12..96,400&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0e0c09;
+  --surface:#161410;
+  --accent:#6b7c3f;
+  --gold:#c8a84a;
+  --text:#e8dfc8;
+  --mid:#7a7060;
+  --border:#2a2518;
+  --serif:'Instrument Serif',Georgia,serif;
+  --sans:'Bricolage Grotesque',sans-serif;
+}
+html,body{width:100%;height:100%;background:var(--bg);overflow:hidden;font-family:var(--sans);color:var(--text)}
+
+/* BAR */
+#bar{
+  position:fixed;top:0;left:0;right:0;z-index:200;
+  height:46px;background:rgba(14,12,9,.96);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:10px;padding:0 16px;
+  backdrop-filter:blur(8px);
+}
+#bar-title{font-family:var(--serif);font-size:13px;color:var(--mid);white-space:nowrap;font-style:italic}
+.bar-btn{font-family:var(--sans);font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--mid);background:none;border:1px solid var(--border);padding:5px 11px;cursor:pointer;border-radius:2px;transition:color .15s,border-color .15s;white-space:nowrap}
+.bar-btn:hover{color:var(--text);border-color:var(--mid)}
+.bar-btn.story-on{color:var(--accent);border-color:var(--accent)}
+#search{margin-left:auto;background:transparent;border:1px solid var(--border);color:var(--text);font-family:var(--sans);font-size:10px;padding:4px 10px;border-radius:2px;outline:none;width:140px}
+#search::placeholder{color:#383828}
+#search:focus{border-color:var(--accent)}
+#hint{font-family:var(--sans);font-size:9px;color:#2a2515;white-space:nowrap}
+
+svg{width:100%;height:100%;cursor:grab;display:block}
+svg:active{cursor:grabbing}
+.node{cursor:pointer}
+.node circle{transition:filter .18s}
+.node:hover .main-c{filter:brightness(1.25)}
+.edge{transition:opacity .2s,stroke .2s,stroke-width .2s}
+
+/* STORY PANEL */
+#sp{
+  position:fixed;bottom:0;left:0;right:0;z-index:300;
+  background:rgba(12,10,7,.98);border-top:1px solid var(--border);
+  transform:translateY(100%);transition:transform .3s ease;
+  backdrop-filter:blur(12px);
+}
+#sp.open{transform:translateY(0)}
+#sp-inner{
+  max-width:1100px;margin:0 auto;
+  display:grid;grid-template-columns:auto 1fr auto;
+  align-items:center;gap:0;min-height:160px;
+}
+.sp-arrow{
+  display:flex;align-items:center;justify-content:center;
+  width:60px;height:100%;cursor:pointer;
+  color:#303020;font-size:24px;border:none;background:none;
+  transition:color .15s;flex-shrink:0;align-self:stretch;
+}
+.sp-arrow:hover{color:var(--accent)}
+.sp-arrow:disabled{opacity:.15;cursor:default}
+#sp-content{padding:20px 10px;display:grid;grid-template-rows:auto auto 1fr;gap:6px}
+#sp-meta{display:flex;align-items:center;gap:14px;margin-bottom:2px}
+#sp-step{font-family:var(--sans);font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--mid)}
+#sp-track{flex:1;height:2px;background:var(--border);border-radius:1px;overflow:hidden}
+#sp-fill{height:100%;background:var(--accent);border-radius:1px;transition:width .35s ease}
+#sp-pct{font-family:var(--sans);font-size:9px;color:var(--mid);letter-spacing:.1em}
+#sp-title{font-family:var(--serif);font-size:19px;font-weight:400;line-height:1.25;color:var(--text)}
+#sp-body{font-size:14px;line-height:1.78;color:var(--mid);max-width:820px;font-weight:300}
+#sp-top{position:absolute;top:10px;right:14px;display:flex;gap:8px}
+.sp-sm-btn{font-family:var(--sans);font-size:9px;letter-spacing:.08em;text-transform:uppercase;background:none;border:1px solid var(--border);color:var(--mid);padding:3px 9px;cursor:pointer;border-radius:2px;transition:all .15s}
+.sp-sm-btn:hover{color:var(--text);border-color:var(--mid)}
+#sp-kb{position:absolute;bottom:10px;right:14px;font-family:var(--sans);font-size:8px;color:#252515;letter-spacing:.06em}
+
+/* TOOLTIP */
+#tip{position:fixed;z-index:400;pointer-events:none;opacity:0;transition:opacity .1s;background:var(--surface);color:var(--text);border:1px solid var(--border);padding:6px 10px;border-radius:2px;font-size:11px;max-width:200px;line-height:1.5;font-family:var(--sans)}
+#tip.show{opacity:1}
+</style>
+</head>
+<body>
+
+<div id="bar">
+  <span id="bar-title">Technology · Power · Futures</span>
+  <button class="bar-btn" id="btn-reset">Reset</button>
+  <button class="bar-btn" id="btn-story">▶ Story mode</button>
+  <span id="hint">ctrl/cmd+scroll=zoom · drag=pan · click=focus</span>
+  <input id="search" type="text" placeholder="search ideas…">
+</div>
+
+<svg id="svg"></svg>
+<div id="tip"></div>
+
+<div id="sp">
+  <div id="sp-top">
+    <button class="sp-sm-btn" id="btn-exit">Exit</button>
+  </div>
+  <div id="sp-inner">
+    <button class="sp-arrow" id="btn-prev">&#8592;</button>
+    <div id="sp-content">
+      <div id="sp-meta">
+        <span id="sp-step"></span>
+        <div id="sp-track"><div id="sp-fill"></div></div>
+        <span id="sp-pct"></span>
+      </div>
+      <div id="sp-title"></div>
+      <div id="sp-body"></div>
+    </div>
+    <button class="sp-arrow" id="btn-next">&#8594;</button>
+  </div>
+  <div id="sp-kb">← → arrow keys to navigate</div>
+</div>
+
+<script>
+// ── WARM PALETTE CLUSTER COLOURS ──
+// Each cluster gets a warm, dark-background-appropriate colour
+// replacing the original cool/saturated hues
+
+const TR={1:90,2:72,3:58,4:46,5:36};
+const TF={1:14,2:13,3:11,4:10,5:9};
+
+const NODES=[
+  {id:'root',label:'Tools we use are\nnot completely\nsubordinate to our will',tier:1,color:'#e8dfc8',tc:'#0e0c09',x:0,y:0},
+
+  // NOT NEUTRAL - warm terracotta
+  {id:'not_neutral',label:'Technology\nis not neutral',tier:2,color:'#9c4a28',tc:'#fff5ee',x:-900,y:-400},
+  {id:'instrumental',label:'Instrumental view:\ntech is just a tool,\ncarries no moral weight',tier:3,color:'#7a3818',tc:'#fff5ee',x:-1200,y:-220},
+  {id:'substantive',label:'Substantive view:\ntech shapes society\nand alters the environment',tier:3,color:'#9c4a28',tc:'#fff5ee',x:-1180,y:-520},
+  {id:'enframing',label:'Enframing (Gestell):\na disposition towards\nreality as standing reserve',tier:3,color:'#8a3e20',tc:'#fff5ee',x:-1060,y:-720},
+  {id:'standing_reserve',label:'Everything becomes\na standing reserve - \nforest → timber → HR',tier:4,color:'#6e2e14',tc:'#fff5ee',x:-1300,y:-820},
+  {id:'techne',label:'Techne: revealing - \nleaves space for\nthe material to express itself',tier:4,color:'#6e2e14',tc:'#fff5ee',x:-1300,y:-620},
+  {id:'silent_leg',label:'Silent legislation:\ninfrastructure encodes\nhow people act',tier:3,color:'#9c4a28',tc:'#fff5ee',x:-1100,y:-160},
+  {id:'intent_neutral',label:'Intent does not\nneutralise impact',tier:4,color:'#6e2e14',tc:'#fff5ee',x:-1340,y:-60},
+  {id:'authoring',label:'The designer is\nauthoring a piece of\nsilent legislation',tier:4,color:'#6e2e14',tc:'#fff5ee',x:-1320,y:120},
+
+  // DEVICE PARADIGM - warm sage
+  {id:'device_paradigm',label:'Device paradigm:\nhides machinery,\ndelivers the commodity',tier:2,color:'#3d6b3a',tc:'#edfff4',x:-400,y:-820},
+  {id:'focal_practices',label:'Focal practices:\nrequire engagement, skill,\nattention - they gather people',tier:3,color:'#2e5229',tc:'#edfff4',x:-640,y:-1020},
+  {id:'dissolves_focal',label:'Device paradigm\ndissolves focal practices\n→ commodious consumption',tier:4,color:'#264520',tc:'#edfff4',x:-380,y:-1060},
+  {id:'protect_friction',label:'Protect your friction - \nnot all friction should\nbe optimised away',tier:4,color:'#264520',tc:'#edfff4',x:-800,y:-900},
+  {id:'creeping_silence',label:'Loss of meaning:\na creeping silence',tier:4,color:'#264520',tc:'#edfff4',x:-180,y:-1020},
+
+  // PHARMAKON - warm amber-violet
+  {id:'pharmakon',label:'Technology as pharmakon:\nboth poison and cure',tier:2,color:'#6b4e20',tc:'#fff8ee',x:-900,y:400},
+  {id:'tertiary_retention',label:'Tertiary retention:\nexternal memory &\ncognitive prosthetics',tier:3,color:'#523c18',tc:'#fff8ee',x:-1120,y:280},
+  {id:'secondary_retention',label:'Secondary retention\nmust be developed\nalongside tertiary',tier:4,color:'#3e2c10',tc:'#fff8ee',x:-1360,y:300},
+  {id:'affective_atrophy',label:'Affective atrophy:\nrecommendation systems\nreplace aesthetic judgement',tier:3,color:'#5a4218',tc:'#fff8ee',x:-1140,y:480},
+  {id:'proletarian_mind',label:'Proletarianisation\nof the mind:\nskills encoded into tech',tier:3,color:'#6b4e20',tc:'#fff8ee',x:-900,y:620},
+  {id:'dis_individuation',label:'Dis-individuation:\nwe lose distinct\ncapacities and independence',tier:4,color:'#3e2c10',tc:'#fff8ee',x:-720,y:760},
+
+  // CONTINGENT - warm ochre
+  {id:'contingent',label:'Technology is contingent - \nit could have been otherwise\nand can be contested',tier:2,color:'#7a6020',tc:'#fff8e0',x:-300,y:820},
+  {id:'primary_instrument',label:'Primary instrumentalisation:\nthe engineering layer',tier:3,color:'#5e4a18',tc:'#fff8e0',x:-560,y:900},
+  {id:'secondary_instrument',label:'Secondary instrumentalisation:\nhow humans are\nenrolled in tech',tier:3,color:'#5e4a18',tc:'#fff8e0',x:-240,y:1000},
+  {id:'democratic_rational',label:'Democratic rationalisation\nhappens at the\nsecondary layer',tier:4,color:'#453610',tc:'#fff8e0',x:-80,y:1120},
+  {id:'reshaped_below',label:'Technology is\nreshaped from below\nby collective forces',tier:4,color:'#453610',tc:'#fff8e0',x:200,y:1040},
+
+  // INSCRIPTION - warm slate blue
+  {id:'inscription',label:'Inscription: translating\nthe world into a\nmobile, readable format',tier:2,color:'#284e6e',tc:'#eef5ff',x:400,y:-820},
+  {id:'never_neutral',label:'An inscription\nis never neutral - \nit encodes a perspective',tier:3,color:'#1e3a52',tc:'#eef5ff',x:200,y:-1020},
+  {id:'black_boxing',label:'Black-boxing:\nso embedded that\nre-examining is very costly',tier:3,color:'#284e6e',tc:'#eef5ff',x:600,y:-1000},
+  {id:'obligatory_passage',label:'Obligatory passage point:\nmake yourself the only\nroute through the network',tier:4,color:'#1e3a52',tc:'#eef5ff',x:380,y:-1120},
+  {id:'delegate_objects',label:'Humans delegate goals\nto objects; objects\nshape humans in return',tier:4,color:'#1e3a52',tc:'#eef5ff',x:720,y:-1100},
+  {id:'five_translation',label:'5 Translation moves:\nproblematise → interest\n→ enrol → mobilise → black-box',tier:3,color:'#1e3a52',tc:'#eef5ff',x:820,y:-860},
+
+  // SOCIAL CONSTRUCTION - warm teal
+  {id:'socially_constructed',label:'Technology is\nsocially constructed - \nan achievement, not a discovery',tier:2,color:'#1e5858',tc:'#eef8f8',x:900,y:-400},
+  {id:'relevant_groups',label:'Relevant social groups\nhave the power to shape\na technology\'s final form',tier:3,color:'#164444',tc:'#eef8f8',x:1100,y:-600},
+  {id:'rhetorical_closure',label:'Rhetorical closure:\nchange societal norms\nto stabilise a technology',tier:4,color:'#164444',tc:'#eef8f8',x:1320,y:-500},
+  {id:'rupture_window',label:'Window for contestation:\nthe period of open rupture\nbefore stabilisation',tier:3,color:'#164444',tc:'#eef8f8',x:1160,y:-220},
+  {id:'civic_epistemology',label:'Civic epistemology:\neach society has its own\nlegitimate way of producing truth',tier:3,color:'#1e5858',tc:'#eef8f8',x:1060,y:-760},
+  {id:'co_production',label:'Co-production:\nscience and social order\nmutually reinforce each other',tier:3,color:'#1e5858',tc:'#eef8f8',x:1300,y:-80},
+  {id:'god_trick',label:'God trick: claiming\nto see from nowhere - \nerases specific people',tier:3,color:'#1e5858',tc:'#eef8f8',x:1180,y:120},
+  {id:'situated_knowledge',label:'Situated knowledge:\nbe accountable by stating\nyour context and constraints',tier:4,color:'#164444',tc:'#eef8f8',x:1360,y:260},
+
+  // HEGEMONY - warm dusty rose
+  {id:'hegemony',label:'Hegemony: the dominant\ngroup shapes the intellectual\nlandscape as "common sense"',tier:2,color:'#6e3458',tc:'#fff0f8',x:900,y:280},
+  {id:'organic_intel',label:'Organic intellectuals:\nmanagers, UX designers - \nproduce "common sense"',tier:3,color:'#543048',tc:'#fff0f8',x:1100,y:460},
+  {id:'war_of_position',label:'War of position:\nbuild your own institutions,\nhire your own intellectuals',tier:4,color:'#3c2038',tc:'#fff0f8',x:1300,y:580},
+  {id:'disciplinary_power',label:'Disciplinary power:\nhierarchical observation +\nnormalising judgement',tier:3,color:'#6e3458',tc:'#fff0f8',x:860,y:540},
+  {id:'governmentality',label:'Governmentality:\npeople view themselves as\nsomething to optimise',tier:3,color:'#543048',tc:'#fff0f8',x:720,y:680},
+  {id:'normalisation',label:'Normalisation:\ndefines the ideal standard\nyou are compared against',tier:4,color:'#3c2038',tc:'#fff0f8',x:1020,y:720},
+  {id:'examination',label:'Examination: documents\njudgement, makes a\ndata point of a person',tier:4,color:'#3c2038',tc:'#fff0f8',x:1200,y:760},
+  {id:'power_diffuse',label:'Since power is everywhere,\nresistance is\npossible everywhere',tier:3,color:'#6e3458',tc:'#fff0f8',x:640,y:440},
+
+  // SOCIAL IMAGINARY - warm green-grey
+  {id:'social_imaginary',label:'Social imaginary:\nshared collective expectations\nof what is normal - "moral glue"',tier:2,color:'#3a5e3a',tc:'#eefff0',x:400,y:-240},
+  {id:'sociotechnical_imaginary',label:'Sociotechnical imaginary:\ncollectively held vision of\ndesirable futures involving tech',tier:3,color:'#2c4a2c',tc:'#eefff0',x:620,y:-60},
+  {id:'delimits_networks',label:'The imaginary delimits\nwhat networks can\neven emerge - what is thinkable',tier:4,color:'#203820',tc:'#eefff0',x:800,y:80},
+  {id:'print_capitalism',label:'Print capitalism:\nnewspapers created\nshared reality at scale',tier:3,color:'#2c4a2c',tc:'#eefff0',x:400,y:-60},
+  {id:'social_media_fragment',label:'Social media optimises\nfor engagement - everyone\ngets a tailored reality',tier:4,color:'#203820',tc:'#eefff0',x:520,y:120},
+  {id:'horizons_significance',label:'We are losing horizons\nof significance - spaces\nrequired for human development',tier:3,color:'#3a5e3a',tc:'#eefff0',x:220,y:-420},
+  {id:'soft_despotism',label:'Soft despotism:\natomised individuals +\npaternalist state',tier:4,color:'#203820',tc:'#eefff0',x:340,y:-560},
+
+  // AGONISM - warm crimson
+  {id:'agonism',label:'Agonism: conflict is\nnot a problem to solve - \nit defends against erasure',tier:2,color:'#7a2030',tc:'#fff0f2',x:-200,y:-480},
+  {id:'antagonism_vs',label:'Antagonism: enemies,\nwant the other side gone.\nAgonism: adversaries who coexist',tier:3,color:'#5e1824',tc:'#fff0f2',x:-440,y:-600},
+  {id:'consensus_dangerous',label:'Consensus in design\nis dangerous - it sands\ndown necessary details',tier:3,color:'#5e1824',tc:'#fff0f2',x:-180,y:-660},
+  {id:'design_agonism_q',label:'"How can design objects\nand practices work\nin support of agonistic pluralism?"',tier:3,color:'#7a2030',tc:'#fff0f2',x:60,y:-540},
+
+  // ADVERSARIAL DESIGN - warm burnt sienna
+  {id:'adversarial_design',label:'Adversarial design:\nsurfaces conflict rather\nthan resolving it',tier:2,color:'#7a3820',tc:'#fff5f0',x:-680,y:-560},
+  {id:'highlight_conflict',label:'Design the artefact\nto highlight the conflict - \nadmit your assumptions',tier:3,color:'#5c2a18',tc:'#fff5f0',x:-880,y:-680},
+  {id:'critical_design',label:'Critical design:\nbring artefacts from\npreferable futures to today',tier:3,color:'#5c2a18',tc:'#fff5f0',x:-820,y:-440},
+  {id:'break_enframing',label:'Critical design\nmeans to break\nthe enframing',tier:4,color:'#5c2a18',tc:'#fff5f0',x:-960,y:-320},
+
+  // DEFUTURING - warm olive
+  {id:'defuturing',label:'Defuturing: creating\nthings that destroy the\npossibility of certain futures',tier:2,color:'#4e6218',tc:'#f5ffe8',x:-600,y:200},
+  {id:'structural_lock_in',label:'Structural lock-in:\ndependence on certain tech\nforecloses alternatives',tier:3,color:'#3a4a10',tc:'#f5ffe8',x:-820,y:120},
+  {id:'bad_design_ontological',label:'Bad design is\nan ontological problem',tier:3,color:'#3a4a10',tc:'#f5ffe8',x:-820,y:300},
+  {id:'sustainment',label:'Sustainment: proactive\ncommitment to futures where\nlife has depth and meaning',tier:3,color:'#4e6218',tc:'#f5ffe8',x:-620,y:420},
+  {id:'ontological_design',label:'Ontological design:\nthe things we make\nshape the beings we become',tier:4,color:'#3a4a10',tc:'#f5ffe8',x:-440,y:520},
+
+  // FORECLOSED - warm copper
+  {id:'foreclosed',label:'Foreclosed futures:\nwhat was possible\nbut is no longer available',tier:2,color:'#7a3818',tc:'#fff5f0',x:200,y:-160},
+  {id:'three_categories',label:'Actual · Possible ·\nPast futures\n(foreclosed possibilities)',tier:3,color:'#5c2a10',tc:'#fff5f0',x:420,y:-40},
+  {id:'dead_futures',label:'Dead futures: imagined\nthen, but killed\nbefore arrival',tier:3,color:'#5c2a10',tc:'#fff5f0',x:180,y:60},
+  {id:'past_contingent',label:'The past is contingent:\nit happened but\ndid not have to',tier:3,color:'#7a3818',tc:'#fff5f0',x:20,y:-280},
+  {id:'hindsight_determinism',label:'Hindsight determinism\nis incorrect - the past\nheld many possibilities',tier:4,color:'#5c2a10',tc:'#fff5f0',x:-160,y:-180},
+
+  // FUTURING - warm forest
+  {id:'futuring',label:'Futuring methods:\nforecast · backcast\nrecast · pastcast',tier:2,color:'#2e5828',tc:'#eefff0',x:300,y:580},
+  {id:'forecasting',label:'Forecasting: divergent - \npossible futures\nbased on the present',tier:3,color:'#224018',tc:'#eefff0',x:120,y:760},
+  {id:'backcasting',label:'Backcasting: convergent - \nideal future → how\ndo we get there',tier:3,color:'#224018',tc:'#eefff0',x:380,y:820},
+  {id:'pastcasting',label:'Pastcasting: ideal alternative\npresent → how could\nthat have been possible',tier:3,color:'#224018',tc:'#eefff0',x:580,y:720},
+  {id:'forecasting_performative',label:'Forecasting is performative:\na forecast made public\nchanges present behaviour',tier:4,color:'#224018',tc:'#eefff0',x:100,y:960},
+  {id:'polak_pull',label:'Images of the future\npull societies in\ncertain directions (Polak)',tier:4,color:'#224018',tc:'#eefff0',x:500,y:960},
+  {id:'past_future_dialectic',label:'The past and future\nhave a dialectical\nrelationship',tier:4,color:'#224018',tc:'#eefff0',x:300,y:1060},
+
+  // DEMOCRATIC IMAGINATION - warm indigo
+  {id:'democratic_imagination',label:'Democratic imagination:\nwe should be involved\nin how we adopt tech',tier:2,color:'#2c3e6e',tc:'#eef0ff',x:-100,y:300},
+  {id:'participatory_gov',label:'Participatory governance:\ngovern emerging tech\nbefore it gets adopted',tier:3,color:'#202e54',tc:'#eef0ff',x:-320,y:220},
+  {id:'rtd',label:'Research through Design:\nthe act of making things\nis a way to learn',tier:3,color:'#2c3e6e',tc:'#eef0ff',x:-100,y:140},
+  {id:'strong_concepts',label:'RtD outputs are\nstrong concepts - \nboundary objects',tier:4,color:'#202e54',tc:'#eef0ff',x:60,y:40},
+  {id:'living_ahead',label:'"We are always\nliving in a way\nahead of our thinking"',tier:3,color:'#202e54',tc:'#eef0ff',x:-360,y:360},
+  {id:'co_produced_understanding',label:'"We need a co-produced\nunderstanding of possibilities\nand preferred outcomes"',tier:3,color:'#2c3e6e',tc:'#eef0ff',x:-120,y:-100},
+
+  // VSD - warm slate
+  {id:'vsd',label:'Value Sensitive Design:\naccounting for human values\nthroughout the design process',tier:2,color:'#2e4258',tc:'#eef4ff',x:-560,y:-200},
+  {id:'direct_indirect',label:'Direct stakeholders interact.\nIndirect stakeholders\nare impacted without interacting',tier:3,color:'#223040',tc:'#eef4ff',x:-760,y:-300},
+  {id:'value_conflicts',label:'Identify value conflicts - \ndo not design\nthem away',tier:3,color:'#223040',tc:'#eef4ff',x:-740,y:-80},
+  {id:'three_investigations',label:'Three investigations:\nconceptual · empirical\n· technical',tier:3,color:'#223040',tc:'#eef4ff',x:-560,y:-60},
+];
+
+const EDGES=[
+  {a:'root',b:'not_neutral'},{a:'root',b:'device_paradigm'},{a:'root',b:'pharmakon'},
+  {a:'root',b:'contingent'},{a:'root',b:'inscription'},{a:'root',b:'socially_constructed'},
+  {a:'root',b:'hegemony'},{a:'root',b:'social_imaginary'},{a:'root',b:'agonism'},
+  {a:'root',b:'adversarial_design'},{a:'root',b:'defuturing'},{a:'root',b:'foreclosed'},
+  {a:'root',b:'futuring'},{a:'root',b:'democratic_imagination'},{a:'root',b:'vsd'},
+  {a:'not_neutral',b:'instrumental'},{a:'not_neutral',b:'substantive'},
+  {a:'not_neutral',b:'enframing'},{a:'not_neutral',b:'silent_leg'},
+  {a:'enframing',b:'standing_reserve'},{a:'enframing',b:'techne'},
+  {a:'silent_leg',b:'intent_neutral'},{a:'silent_leg',b:'authoring'},
+  {a:'device_paradigm',b:'focal_practices'},{a:'device_paradigm',b:'dissolves_focal'},
+  {a:'device_paradigm',b:'creeping_silence'},{a:'focal_practices',b:'protect_friction'},
+  {a:'pharmakon',b:'tertiary_retention'},{a:'pharmakon',b:'affective_atrophy'},
+  {a:'pharmakon',b:'proletarian_mind'},{a:'tertiary_retention',b:'secondary_retention'},
+  {a:'proletarian_mind',b:'dis_individuation'},
+  {a:'contingent',b:'primary_instrument'},{a:'contingent',b:'secondary_instrument'},
+  {a:'secondary_instrument',b:'democratic_rational'},{a:'secondary_instrument',b:'reshaped_below'},
+  {a:'inscription',b:'never_neutral'},{a:'inscription',b:'black_boxing'},
+  {a:'inscription',b:'five_translation'},{a:'black_boxing',b:'obligatory_passage'},
+  {a:'black_boxing',b:'delegate_objects'},{a:'five_translation',b:'obligatory_passage'},
+  {a:'socially_constructed',b:'relevant_groups'},{a:'socially_constructed',b:'civic_epistemology'},
+  {a:'socially_constructed',b:'co_production'},{a:'socially_constructed',b:'god_trick'},
+  {a:'relevant_groups',b:'rhetorical_closure'},{a:'relevant_groups',b:'rupture_window'},
+  {a:'god_trick',b:'situated_knowledge'},
+  {a:'hegemony',b:'organic_intel'},{a:'hegemony',b:'disciplinary_power'},{a:'hegemony',b:'power_diffuse'},
+  {a:'organic_intel',b:'war_of_position'},{a:'disciplinary_power',b:'normalisation'},
+  {a:'disciplinary_power',b:'examination'},{a:'disciplinary_power',b:'governmentality'},
+  {a:'social_imaginary',b:'sociotechnical_imaginary'},{a:'social_imaginary',b:'print_capitalism'},
+  {a:'social_imaginary',b:'horizons_significance'},{a:'sociotechnical_imaginary',b:'delimits_networks'},
+  {a:'print_capitalism',b:'social_media_fragment'},{a:'horizons_significance',b:'soft_despotism'},
+  {a:'agonism',b:'antagonism_vs'},{a:'agonism',b:'consensus_dangerous'},{a:'agonism',b:'design_agonism_q'},
+  {a:'adversarial_design',b:'highlight_conflict'},{a:'adversarial_design',b:'critical_design'},
+  {a:'critical_design',b:'break_enframing'},
+  {a:'defuturing',b:'structural_lock_in'},{a:'defuturing',b:'bad_design_ontological'},
+  {a:'defuturing',b:'sustainment'},{a:'sustainment',b:'ontological_design'},
+  {a:'foreclosed',b:'three_categories'},{a:'foreclosed',b:'dead_futures'},
+  {a:'foreclosed',b:'past_contingent'},{a:'past_contingent',b:'hindsight_determinism'},
+  {a:'futuring',b:'forecasting'},{a:'futuring',b:'backcasting'},{a:'futuring',b:'pastcasting'},
+  {a:'forecasting',b:'forecasting_performative'},{a:'pastcasting',b:'polak_pull'},
+  {a:'futuring',b:'past_future_dialectic'},
+  {a:'democratic_imagination',b:'participatory_gov'},{a:'democratic_imagination',b:'rtd'},
+  {a:'democratic_imagination',b:'living_ahead'},{a:'democratic_imagination',b:'co_produced_understanding'},
+  {a:'rtd',b:'strong_concepts'},
+  {a:'vsd',b:'direct_indirect'},{a:'vsd',b:'value_conflicts'},{a:'vsd',b:'three_investigations'},
+  // cross-connections
+  {a:'enframing',b:'device_paradigm',x:1},{a:'standing_reserve',b:'defuturing',x:1},
+  {a:'black_boxing',b:'foreclosed',x:1},{a:'black_boxing',b:'structural_lock_in',x:1},
+  {a:'dissolves_focal',b:'proletarian_mind',x:1},{a:'dis_individuation',b:'ontological_design',x:1},
+  {a:'contingent',b:'rupture_window',x:1},{a:'silent_leg',b:'inscription',x:1},
+  {a:'delegate_objects',b:'authoring',x:1},{a:'socially_constructed',b:'contingent',x:1},
+  {a:'sociotechnical_imaginary',b:'social_imaginary',x:1},{a:'hegemony',b:'delimits_networks',x:1},
+  {a:'co_production',b:'sociotechnical_imaginary',x:1},{a:'organic_intel',b:'social_imaginary',x:1},
+  {a:'governmentality',b:'affective_atrophy',x:1},{a:'normalisation',b:'social_media_fragment',x:1},
+  {a:'agonism',b:'adversarial_design',x:1},{a:'agonism',b:'democratic_imagination',x:1},
+  {a:'consensus_dangerous',b:'value_conflicts',x:1},{a:'break_enframing',b:'enframing',x:1},
+  {a:'defuturing',b:'foreclosed',x:1},{a:'structural_lock_in',b:'proletarian_mind',x:1},
+  {a:'futuring',b:'foreclosed',x:1},{a:'futuring',b:'democratic_imagination',x:1},
+  {a:'participatory_gov',b:'rupture_window',x:1},{a:'strong_concepts',b:'design_agonism_q',x:1},
+  {a:'horizons_significance',b:'focal_practices',x:1},{a:'power_diffuse',b:'rupture_window',x:1},
+  {a:'past_contingent',b:'backcasting',x:1},{a:'situated_knowledge',b:'vsd',x:1},
+  {a:'god_trick',b:'hegemony',x:1},{a:'co_produced_understanding',b:'participatory_gov',x:1},
+  {a:'polak_pull',b:'sociotechnical_imaginary',x:1},
+  {a:'forecasting_performative',b:'social_imaginary',x:1},
+  {a:'sustainment',b:'focal_practices',x:1},{a:'war_of_position',b:'rtd',x:1},
+  {a:'proletarian_mind',b:'organic_intel',x:1},{a:'pharmakon',b:'device_paradigm',x:1},
+];
+
+// Story - same as original but referenced here for completeness
+const STORY=[
+  {id:'root',title:'Tools we use are not completely subordinate to our will',body:'This is Heidegger\'s opening provocation - and the thesis the whole map argues. We assume technology does what we tell it. But the tools we use also shape us, constrain us, and quietly foreclose possibilities we never noticed we had lost.'},
+  {id:'not_neutral',title:'Technology is not neutral',body:'Two views compete. The instrumental view says tech is just a tool - a hammer, a platform, a drug - and morality lies only in how you use it. The substantive view says tech itself shapes society, alters the environment, and carries values whether we intend it or not. Almost every serious thinker here holds the substantive view.'},
+  {id:'enframing',title:'Enframing (Gestell): a disposition towards reality as standing reserve',body:'Heidegger\'s deepest concept. Enframing is not a technology - it is a way of seeing, a disposition towards reality. Under enframing, everything gets revealed as a resource waiting to be used, optimised, or extracted. It is not one choice among many - it becomes the only way of seeing.'},
+  {id:'device_paradigm',title:'Device paradigm: hides machinery, delivers the commodity',body:'Albert Borgmann takes Heidegger\'s enframing into everyday life. The device paradigm is the pattern of modern technological culture: devices deliver a commodity - warmth, music, food, entertainment - while hiding the machinery that produces it.'},
+  {id:'focal_practices',title:'Focal practices: require engagement, skill, attention - they gather people',body:'Focal practices are what the device paradigm dissolves. They are activities that require real engagement - tending a fire, cooking a meal from raw ingredients, playing an instrument, gardening. They are not replaceable by their outputs.'},
+  {id:'pharmakon',title:'Technology as pharmakon: both poison and cure',body:'Bernard Stiegler extends the analysis into the mind. Technology is constitutive of what we are - we have always been cyborgs, always extending ourselves through tools. But it is a pharmakon: the same technology that extends the mind can also atrophy it.'},
+  {id:'proletarian_mind',title:'Proletarianisation of the mind: skills encoded into tech',body:'Stiegler\'s sharpest concept. Industrial capitalism took knowledge from craftsmen and encoded it in machines. The same is happening to cognitive work. Our skills - writing, analysis, design, judgement - are being encoded into AI systems.'},
+  {id:'contingent',title:'Technology is contingent - it could have been otherwise, and can be contested',body:'Andrew Feenberg offers the first genuinely hopeful claim. Technology is contingent - not necessary. It could have taken different forms. Because it is contingent, it can be challenged and redirected.'},
+  {id:'inscription',title:'Inscription: translating the world into a mobile, readable format',body:'Bruno Latour observed scientists at work and noticed something crucial. Facts are not discovered - they are constructed through a process of inscription: translating the messy, resistant world into a readable, mobile format.'},
+  {id:'black_boxing',title:'Black-boxing: so embedded that re-examining it is very costly',body:'Once a technology successfully stabilises, it becomes black-boxed. The choices embedded in it become invisible. The original controversies are forgotten. The political decisions look like technical facts.'},
+  {id:'socially_constructed',title:'Technology is socially constructed - an achievement, not a discovery',body:'Bijker and Pinch make this concrete. Technologies do not arrive at their final form through engineering logic alone. They are shaped by social negotiation between groups with competing interests, interpretations, and values.'},
+  {id:'hegemony',title:'Hegemony: the dominant group shapes the intellectual landscape as "common sense"',body:'Antonio Gramsci explains why the window tends to close before real contestation happens. The dominant group maintains power not primarily through force but by shaping what counts as common sense.'},
+  {id:'social_imaginary',title:'Social imaginary: shared collective expectations of what is normal',body:'Charles Taylor locates the problem in what he calls the social imaginary: the shared, largely pre-theoretical understanding of what is normal, what is reasonable, what is possible.'},
+  {id:'agonism',title:'Agonism: conflict is not a problem to solve - it defends against erasure',body:'Chantal Mouffe\'s core claim. Liberal political theory tries to manage conflict through rational consensus. Mouffe says this is both impossible and dangerous. Conflict is constitutive of the political.'},
+  {id:'adversarial_design',title:'Adversarial design: surfaces conflict rather than resolving it',body:'DiSalvo\'s answer. Adversarial design does not try to solve problems - it tries to surface the conflict that problem-solving tends to bury.'},
+  {id:'defuturing',title:'Defuturing: creating things that destroy the possibility of certain futures',body:'Tony Fry names the problem at its most fundamental level. Defuturing is the act of creating things that destroy the possibility of certain futures existing at all.'},
+  {id:'foreclosed',title:'Foreclosed futures: what was possible but is no longer available',body:'Foreclosed futures are not simply futures that did not happen - they are futures that were possible, that were imagined, but were killed before they could arrive.'},
+  {id:'futuring',title:'Futuring methods: forecast · backcast · recast · pastcast',body:'Roy Bendor\'s practical toolkit for working with time politically. Each method operates differently on the relationship between past, present, and future.'},
+  {id:'democratic_imagination',title:'Democratic imagination: we should be involved in how we adopt tech',body:'Roy Bendor\'s central argument. Democratic life requires not just that we vote on representatives, but that we participate in the decisions that shape the material conditions of our lives - including which technologies we adopt.'},
+  {id:'vsd',title:'Value Sensitive Design: accounting for human values throughout the design process',body:'Value Sensitive Design is a methodology that takes seriously the claim that technology is not neutral. Rather than treating values as constraints to satisfy after the design is done, VSD builds value investigation into every stage.'},
+  {id:'rupture_window',title:'Window for contestation: the period of open rupture before stabilisation',body:'Before a technology stabilises - during the period of open rupture, when interpretive flexibility still exists - genuine contestation is possible. After black-boxing, contestation becomes very costly.'},
+  {id:'design_agonism_q',title:'"How can design objects and practices work in support of agonistic pluralism?"',body:'This is DiSalvo\'s research question - and arguably the question that ties this entire map together. How do you make things that sustain conflict rather than suppress it?'},
+];
+
+// ── RENDER ──
+const svg   = document.getElementById('svg');
+const NS    = 'http://www.w3.org/2000/svg';
+const tipEl = document.getElementById('tip');
+
+let vx=0,vy=0,sc=0.26;
+let dragging=false,lx=0,ly=0;
+let focused=null, storyMode=false, storyIdx=0;
+
+function mkEl(tag,attrs={}){
+  const e=document.createElementNS(NS,tag);
+  for(const[k,v]of Object.entries(attrs))e.setAttribute(k,v);
+  return e;
+}
+
+const mainG=mkEl('g');svg.appendChild(mainG);
+const edgeG=mkEl('g');mainG.appendChild(edgeG);
+const nodeG=mkEl('g');mainG.appendChild(nodeG);
+
+const nmap={};NODES.forEach(n=>nmap[n.id]=n);
+const adj={};NODES.forEach(n=>adj[n.id]=new Set());
+EDGES.forEach(e=>{adj[e.a].add(e.b);adj[e.b].add(e.a);});
+
+const nodeEls={};
+
+function setT(){
+  const cx=window.innerWidth/2,cy=window.innerHeight/2;
+  mainG.setAttribute('transform',`translate(${cx+vx*sc},${cy+vy*sc}) scale(${sc})`);
+}
+
+function drawEdges(){
+  edgeG.innerHTML='';
+  EDGES.forEach(e=>{
+    const a=nmap[e.a],b=nmap[e.b];if(!a||!b)return;
+    const cross=!!e.x;
+    const mx=(a.x+b.x)/2+(cross?-(b.y-a.y)*.12:0);
+    const my=(a.y+b.y)/2+(cross?(b.x-a.x)*.12:0);
+    const el=mkEl('path',{
+      class:'edge',fill:'none',
+      d:`M${a.x},${a.y} Q${mx},${my} ${b.x},${b.y}`,
+      stroke:cross?'#2a2010':'#3a3020',
+      'stroke-width':cross?'1.5':'2.5',
+      'stroke-dasharray':cross?'7 5':'none',
+      opacity:cross?'0.3':'0.45',
+      'data-a':e.a,'data-b':e.b,'data-cross':cross?'1':'0',
+    });
+    edgeG.appendChild(el);
+  });
+}
+
+function drawNodes(){
+  nodeG.innerHTML='';
+  NODES.forEach(n=>{
+    const r=TR[n.tier]||36;
+    const fs=TF[n.tier]||9;
+    const g=mkEl('g',{class:'node','data-id':n.id});
+    // glow
+    g.appendChild(mkEl('circle',{cx:n.x,cy:n.y,r:r+14,fill:'none',stroke:n.color,opacity:'.06','stroke-width':'18'}));
+    // main
+    const c=mkEl('circle',{cx:n.x,cy:n.y,r:r,fill:n.color,class:'main-c',stroke:'rgba(255,255,255,0.05)','stroke-width':'1.5'});
+    g.appendChild(c);
+    // label
+    const lines=n.label.split('\n');
+    const lh=fs+4,tot=lines.length*lh;
+    lines.forEach((line,i)=>{
+      const t=mkEl('text',{
+        x:n.x,y:n.y-tot/2+lh/2+i*lh,
+        fill:n.tc||'#e8dfc8','font-size':n.tier===1?15:fs,
+        'font-family':"'Bricolage Grotesque',sans-serif",
+        'text-anchor':'middle','dominant-baseline':'middle',
+        'font-weight':n.tier<=2?'500':'300',
+        'font-style':n.label.startsWith('"')?'italic':'normal',
+      });
+      t.textContent=line;g.appendChild(t);
+    });
+    g.addEventListener('click',ev=>{ev.stopPropagation();if(!storyMode)focusNode(n.id);});
+    g.addEventListener('mouseenter',ev=>{
+      if(storyMode)return;
+      tipEl.textContent=n.label.replace(/\n/g,' ');
+      tipEl.classList.add('show');moveTip(ev);
+    });
+    g.addEventListener('mousemove',moveTip);
+    g.addEventListener('mouseleave',()=>tipEl.classList.remove('show'));
+    nodeG.appendChild(g);nodeEls[n.id]=g;
+  });
+}
+
+function moveTip(e){
+  let x=e.clientX+14,y=e.clientY+14;
+  if(x+210>window.innerWidth)x=e.clientX-210;
+  tipEl.style.left=x+'px';tipEl.style.top=y+'px';
+}
+
+function focusNode(id){
+  if(focused===id){resetFocus();return;}
+  focused=id;
+  const conn=adj[id];
+  Object.entries(nodeEls).forEach(([nid,el])=>{
+    if(nid===id){
+      el.style.opacity='1';
+      const c=el.querySelector('.main-c');
+      c.setAttribute('stroke','rgba(200,168,74,.8)');
+      c.setAttribute('stroke-width','3');
+    } else if(conn.has(nid)){
+      el.style.opacity='1';
+    } else {
+      el.style.opacity='0.06';
+    }
+  });
+  document.querySelectorAll('.edge').forEach(el=>{
+    const a=el.getAttribute('data-a'),b=el.getAttribute('data-b');
+    const cross=el.getAttribute('data-cross')==='1';
+    if(a===id||b===id){
+      el.setAttribute('opacity','1');
+      el.setAttribute('stroke',cross?'#c8a84a':'#e8d090');
+      el.setAttribute('stroke-width',cross?'2':'3.5');
+      el.setAttribute('stroke-dasharray',cross?'6 4':'none');
+    } else {
+      el.setAttribute('opacity','0.02');
+    }
+  });
+}
+
+function resetFocus(){
+  focused=null;
+  Object.entries(nodeEls).forEach(([,el])=>{
+    el.style.opacity='1';
+    const c=el.querySelector('.main-c');
+    if(c){c.setAttribute('stroke','rgba(255,255,255,0.05)');c.setAttribute('stroke-width','1.5');}
+  });
+  document.querySelectorAll('.edge').forEach(el=>{
+    const cross=el.getAttribute('data-cross')==='1';
+    el.setAttribute('stroke',cross?'#2a2010':'#3a3020');
+    el.setAttribute('stroke-width',cross?'1.5':'2.5');
+    el.setAttribute('stroke-dasharray',cross?'7 5':'none');
+    el.setAttribute('opacity',cross?'0.3':'0.45');
+  });
+}
+
+// STORY
+const sp    =document.getElementById('sp');
+const spStep=document.getElementById('sp-step');
+const spFill=document.getElementById('sp-fill');
+const spPct =document.getElementById('sp-pct');
+const spTitle=document.getElementById('sp-title');
+const spBody =document.getElementById('sp-body');
+const btnStory=document.getElementById('btn-story');
+
+function panTo(id){
+  const n=nmap[id];if(!n)return;
+  const tx=-n.x,ty=-n.y;
+  const svx=vx,svy=vy,t0=performance.now(),dur=500;
+  function step(t){
+    const p=Math.min((t-t0)/dur,1);
+    const e=p<.5?2*p*p:1-Math.pow(-2*p+2,2)/2;
+    vx=svx+(tx-svx)*e;vy=svy+(ty-svy)*e;setT();
+    if(p<1)requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
+function showStep(i){
+  const s=STORY[i];
+  spStep.textContent=`${i+1} / ${STORY.length}`;
+  const pct=Math.round((i+1)/STORY.length*100);
+  spFill.style.width=pct+'%';
+  spPct.textContent=pct+'%';
+  spTitle.textContent=s.title;
+  spBody.textContent=s.body;
+  document.getElementById('btn-prev').disabled=(i===0);
+  document.getElementById('btn-next').disabled=(i===STORY.length-1);
+  focusNode(s.id);
+  panTo(s.id);
+}
+
+function enterStory(){
+  storyMode=true;storyIdx=0;
+  sp.classList.add('open');
+  btnStory.classList.add('story-on');
+  btnStory.textContent='■ Exit story';
+  showStep(0);
+}
+function exitStory(){
+  storyMode=false;
+  sp.classList.remove('open');
+  btnStory.classList.remove('story-on');
+  btnStory.textContent='▶ Story mode';
+  resetFocus();
+}
+
+btnStory.addEventListener('click',()=>storyMode?exitStory():enterStory());
+document.getElementById('btn-exit').addEventListener('click',exitStory);
+document.getElementById('btn-next').addEventListener('click',()=>{if(storyIdx<STORY.length-1){storyIdx++;showStep(storyIdx);}});
+document.getElementById('btn-prev').addEventListener('click',()=>{if(storyIdx>0){storyIdx--;showStep(storyIdx);}});
+
+window.addEventListener('keydown',e=>{
+  if(!storyMode)return;
+  if(e.key==='ArrowRight'||e.key==='ArrowDown'){if(storyIdx<STORY.length-1){storyIdx++;showStep(storyIdx);}}
+  if(e.key==='ArrowLeft'||e.key==='ArrowUp'){if(storyIdx>0){storyIdx--;showStep(storyIdx);}}
+  if(e.key==='Escape')exitStory();
+});
+
+// PAN / ZOOM
+svg.addEventListener('mousedown',e=>{dragging=true;lx=e.clientX;ly=e.clientY;});
+window.addEventListener('mousemove',e=>{
+  if(!dragging)return;
+  vx+=(e.clientX-lx)/sc;vy+=(e.clientY-ly)/sc;
+  lx=e.clientX;ly=e.clientY;setT();
+});
+window.addEventListener('mouseup',()=>dragging=false);
+svg.addEventListener('wheel',e=>{
+  // Only zoom on explicit intent (ctrl/cmd + wheel, or pinch gesture).
+  // Let regular scrolling pass through to the parent page.
+  if(!e.ctrlKey && !e.metaKey) return;
+  e.preventDefault();
+  const d=e.deltaY>0?.88:1.14;
+  const ns=Math.max(.1,Math.min(4,sc*d));
+  const mx=e.clientX-window.innerWidth/2,my=e.clientY-window.innerHeight/2;
+  vx=vx-mx/sc+mx/ns;vy=vy-my/sc+my/ns;
+  sc=ns;setT();
+},{passive:false});
+svg.addEventListener('click',()=>{if(!storyMode)resetFocus();});
+
+// TOUCH
+let ltd=null;
+svg.addEventListener('touchstart',e=>{if(e.touches.length===1){dragging=true;lx=e.touches[0].clientX;ly=e.touches[0].clientY;}});
+svg.addEventListener('touchmove',e=>{
+  e.preventDefault();
+  if(e.touches.length===1&&dragging){vx+=(e.touches[0].clientX-lx)/sc;vy+=(e.touches[0].clientY-ly)/sc;lx=e.touches[0].clientX;ly=e.touches[0].clientY;setT();}
+  else if(e.touches.length===2){const dx=e.touches[0].clientX-e.touches[1].clientX,dy=e.touches[0].clientY-e.touches[1].clientY,dist=Math.sqrt(dx*dx+dy*dy);if(ltd){sc=Math.max(.1,Math.min(4,sc*dist/ltd));setT();}ltd=dist;}
+},{passive:false});
+svg.addEventListener('touchend',()=>{dragging=false;ltd=null;});
+
+// SEARCH
+document.getElementById('search').addEventListener('input',function(){
+  const q=this.value.toLowerCase().trim();
+  Object.entries(nodeEls).forEach(([nid,el])=>{
+    el.style.opacity=!q||nmap[nid].label.toLowerCase().includes(q)?'1':'0.05';
+  });
+});
+document.getElementById('btn-reset').addEventListener('click',()=>{
+  resetFocus();document.getElementById('search').value='';
+  Object.entries(nodeEls).forEach(([,el])=>el.style.opacity='1');
+});
+
+drawEdges();drawNodes();setT();
+</script>
+</body>
+</html>
