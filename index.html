@@ -11,10 +11,10 @@
 :root{
   --bg:#0e0c09;
   --surface:#161410;
-  --accent:#6b7c3f;
+  --accent:#7a8e40;
   --gold:#c8a84a;
   --text:#e8dfc8;
-  --mid:#7a7060;
+  --mid:#908878;
   --border:#2a2518;
   --serif:'Instrument Serif',Georgia,serif;
   --sans:'Bricolage Grotesque',sans-serif;
@@ -33,9 +33,9 @@ html,body{width:100%;height:100%;background:var(--bg);overflow:hidden;font-famil
 .bar-btn:hover{color:var(--text);border-color:var(--mid)}
 .bar-btn.story-on{color:var(--accent);border-color:var(--accent)}
 #search{margin-left:auto;background:transparent;border:1px solid var(--border);color:var(--text);font-family:var(--sans);font-size:10px;padding:4px 10px;border-radius:2px;outline:none;width:140px}
-#search::placeholder{color:#383828}
+#search::placeholder{color:#555040}
 #search:focus{border-color:var(--accent)}
-#hint{font-family:var(--sans);font-size:9px;color:#2a2515;white-space:nowrap}
+#hint{font-family:var(--sans);font-size:9px;color:var(--mid);white-space:nowrap}
 
 svg{width:100%;height:100%;cursor:grab;display:block}
 svg:active{cursor:grabbing}
@@ -60,7 +60,7 @@ svg:active{cursor:grabbing}
 .sp-arrow{
   display:flex;align-items:center;justify-content:center;
   width:60px;height:100%;cursor:pointer;
-  color:#303020;font-size:24px;border:none;background:none;
+  color:#666050;font-size:24px;border:none;background:none;
   transition:color .15s;flex-shrink:0;align-self:stretch;
 }
 .sp-arrow:hover{color:var(--accent)}
@@ -76,44 +76,56 @@ svg:active{cursor:grabbing}
 #sp-top{position:absolute;top:10px;right:14px;display:flex;gap:8px}
 .sp-sm-btn{font-family:var(--sans);font-size:9px;letter-spacing:.08em;text-transform:uppercase;background:none;border:1px solid var(--border);color:var(--mid);padding:3px 9px;cursor:pointer;border-radius:2px;transition:all .15s}
 .sp-sm-btn:hover{color:var(--text);border-color:var(--mid)}
-#sp-kb{position:absolute;bottom:10px;right:14px;font-family:var(--sans);font-size:8px;color:#252515;letter-spacing:.06em}
+#sp-kb{position:absolute;bottom:10px;right:14px;font-family:var(--sans);font-size:8px;color:var(--mid);letter-spacing:.06em}
 
 /* TOOLTIP */
 #tip{position:fixed;z-index:400;pointer-events:none;opacity:0;transition:opacity .1s;background:var(--surface);color:var(--text);border:1px solid var(--border);padding:6px 10px;border-radius:2px;font-size:11px;max-width:200px;line-height:1.5;font-family:var(--sans)}
 #tip.show{opacity:1}
+
+/* SKIP LINK */
+.skip-link{position:absolute;left:-10000px;top:auto;width:1px;height:1px;overflow:hidden;z-index:1000;text-decoration:none}
+.skip-link:focus{position:fixed;top:0;left:50%;transform:translateX(-50%);width:auto;height:auto;overflow:visible;background:var(--surface);color:var(--text);padding:8px 20px;border:1px solid var(--accent);border-radius:0 0 4px 4px;font-size:13px;font-family:var(--sans)}
+
+/* FOCUS INDICATORS */
+.bar-btn:focus-visible,.sp-arrow:focus-visible,.sp-sm-btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.node:focus-visible circle.main-c{filter:brightness(1.4)}
+#search:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 </style>
 </head>
 <body>
+<a href="#main-content" class="skip-link">Skip to main content</a>
 
 <div id="bar">
   <span id="bar-title">Technology · Power · Futures</span>
   <button class="bar-btn" id="btn-reset">Reset</button>
-  <button class="bar-btn" id="btn-story">▶ Story mode</button>
-  <span id="hint">ctrl/cmd+scroll=zoom · drag=pan · click=focus</span>
-  <input id="search" type="text" placeholder="search ideas…">
+  <button class="bar-btn" id="btn-story" aria-expanded="false" aria-controls="sp"><span aria-hidden="true">▶</span> Story mode</button>
+  <span id="hint" aria-hidden="true">ctrl/cmd+scroll=zoom · drag=pan · click=focus</span>
+  <input id="search" type="text" placeholder="search ideas…" aria-label="Search concepts">
 </div>
 
-<svg id="svg"></svg>
+<main id="main-content">
+<svg id="svg" role="application" aria-label="Interactive knowledge graph: Technology, Power, and Futures. Activate Story mode in the toolbar for a guided keyboard-navigable tour."></svg>
+</main>
 <div id="tip"></div>
 
-<div id="sp">
+<div id="sp" role="region" aria-label="Story mode panel" aria-hidden="true">
   <div id="sp-top">
-    <button class="sp-sm-btn" id="btn-exit">Exit</button>
+    <button class="sp-sm-btn" id="btn-exit" aria-label="Exit story mode">Exit</button>
   </div>
   <div id="sp-inner">
-    <button class="sp-arrow" id="btn-prev">&#8592;</button>
-    <div id="sp-content">
+    <button class="sp-arrow" id="btn-prev" aria-label="Previous"><span aria-hidden="true">&#8592;</span></button>
+    <div id="sp-content" aria-live="polite" aria-atomic="false">
       <div id="sp-meta">
         <span id="sp-step"></span>
-        <div id="sp-track"><div id="sp-fill"></div></div>
+        <div id="sp-track" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" aria-label="Story progress"><div id="sp-fill"></div></div>
         <span id="sp-pct"></span>
       </div>
-      <div id="sp-title"></div>
+      <div id="sp-title" role="heading" aria-level="2"></div>
       <div id="sp-body"></div>
     </div>
-    <button class="sp-arrow" id="btn-next">&#8594;</button>
+    <button class="sp-arrow" id="btn-next" aria-label="Next"><span aria-hidden="true">&#8594;</span></button>
   </div>
-  <div id="sp-kb">← → arrow keys to navigate</div>
+  <div id="sp-kb" aria-hidden="true">← → arrow keys to navigate</div>
 </div>
 
 <script>
@@ -395,7 +407,7 @@ function drawNodes(){
   NODES.forEach(n=>{
     const r=TR[n.tier]||36;
     const fs=TF[n.tier]||9;
-    const g=mkEl('g',{class:'node','data-id':n.id});
+    const g=mkEl('g',{class:'node','data-id':n.id,tabindex:'0',role:'button','aria-label':n.label.replace(/\n/g,' ')});
     // glow
     g.appendChild(mkEl('circle',{cx:n.x,cy:n.y,r:r+14,fill:'none',stroke:n.color,opacity:'.06','stroke-width':'18'}));
     // main
@@ -416,6 +428,7 @@ function drawNodes(){
       t.textContent=line;g.appendChild(t);
     });
     g.addEventListener('click',ev=>{ev.stopPropagation();if(!storyMode)focusNode(n.id);});
+    g.addEventListener('keydown',ev=>{if((ev.key==='Enter'||ev.key===' ')&&!storyMode){ev.preventDefault();focusNode(n.id);}});
     g.addEventListener('mouseenter',ev=>{
       if(storyMode)return;
       tipEl.textContent=n.label.replace(/\n/g,' ');
@@ -507,6 +520,7 @@ function showStep(i){
   const pct=Math.round((i+1)/STORY.length*100);
   spFill.style.width=pct+'%';
   spPct.textContent=pct+'%';
+  document.getElementById('sp-track').setAttribute('aria-valuenow',pct);
   spTitle.textContent=s.title;
   spBody.textContent=s.body;
   document.getElementById('btn-prev').disabled=(i===0);
@@ -518,15 +532,19 @@ function showStep(i){
 function enterStory(){
   storyMode=true;storyIdx=0;
   sp.classList.add('open');
+  sp.setAttribute('aria-hidden','false');
   btnStory.classList.add('story-on');
-  btnStory.textContent='■ Exit story';
+  btnStory.setAttribute('aria-expanded','true');
+  btnStory.innerHTML='<span aria-hidden="true">■</span> Exit story';
   showStep(0);
 }
 function exitStory(){
   storyMode=false;
   sp.classList.remove('open');
+  sp.setAttribute('aria-hidden','true');
   btnStory.classList.remove('story-on');
-  btnStory.textContent='▶ Story mode';
+  btnStory.setAttribute('aria-expanded','false');
+  btnStory.innerHTML='<span aria-hidden="true">▶</span> Story mode';
   resetFocus();
 }
 
