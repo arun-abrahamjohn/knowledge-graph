@@ -2,6 +2,9 @@
 
 An interactive knowledge graph mapping key concepts in the philosophy of technology — from Heidegger's enframing to democratic imagination, adversarial design to foreclosed futures.
 
+<img width="1376" height="831" alt="image" src="https://github.com/user-attachments/assets/1b143559-c135-41ba-ae25-7a0668b34009" />
+
+
 ## Using the graph
 
 | Action | How |
