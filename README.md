@@ -10,15 +10,14 @@ An interactive knowledge graph mapping key concepts in the philosophy of technol
 
 | Action | How |
 |--------|-----|
-| Pan | Click and drag |
-| Zoom | Ctrl/Cmd + scroll, or pinch on trackpad |
-| Focus a node | Click it — connected nodes highlight, others fade |
-| Dismiss focus | Click the background or the focused node again |
-| Search | Type in the search box (top right) |
-| Reset | Click **Reset** in the toolbar |
-| Guided tour | Click **Story mode** — steps through 22 key concepts with commentary |
+| Start guided tour | Click **Guided tour** in the top bar |
+| Navigate tour steps | Use `←` and `→`, or click the side arrows |
+| Exit guided tour | Click **Exit tour** or press `Esc` |
+| Inspect highlighted concepts | Hover highlighted nodes during the tour to see context tooltips |
+| Search concepts | Type in the search box (top right) |
+| Reset view and filters | Click **Reset** in the toolbar |
 
-**Story mode keyboard shortcuts:** `←` `→` to navigate, `Esc` to exit.
+**Guided tour keyboard shortcuts:** `←` `→` to navigate, `Esc` to exit.
 
 ## Concepts covered
 
@@ -42,9 +41,9 @@ The graph is organised into 15 clusters radiating from a central thesis (*tools 
 
 ## Technical notes
 
-A single self-contained `index.html` — no build step, no dependencies beyond two Google Fonts. The graph is rendered as inline SVG with quadratic Bézier edges. Pan and zoom are handled via an SVG `transform` attribute updated on pointer and wheel events.
+A single self-contained `index.html` — no build step, no framework, and only Google Fonts as an external dependency.
 
-The file passes WCAG 2.1 AA: all text and UI components meet contrast thresholds, every interactive element is keyboard-focusable with visible focus indicators, and the story panel is fully navigable without a mouse.
+The graph now uses a 3D sphere distribution projected into SVG, with continuous Y-axis auto-rotation and depth-based opacity. During the guided tour, each step focuses a concept, highlights connected nodes and edges, and smoothly zooms the camera to frame that local neighborhood.
 
 ## Running locally
 
